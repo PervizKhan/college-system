@@ -14,7 +14,7 @@ export async function middleware(request) {
   const payload = await decrypt(session);
 
   // 2. PROTECT /ADMIN: Only let "admin" role enter
-  if (path.startsWith("/admin") && payload?.role !== "admin") {
+  if (path.startsWith("/admin") && payload?.role !== "admin" && payload?.role !== "instructor") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

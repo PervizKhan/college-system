@@ -1,107 +1,97 @@
 "use client";
-import { useState, useEffect } from "react";
-import { approveUser, createInstructor } from "@/lib/actions";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function AdminDashboard() {
-  const [view, setView] = useState("instructors"); // 'instructors' or 'pending'
-  const [pendingUsers, setPendingUsers] = useState([]);
-  const [instructorCount, setInstructorCount] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Since we are in a Client Component, we fetch the counts/list on mount
-  useEffect(() => {
-    async function fetchData() {
-      const res = await fetch('/api/admin/stats');
-      const data = await res.json();
-      setPendingUsers(data.pending);
-      setInstructorCount(data.instructors);
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/admin/export-attendance");
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Attendance_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        alert("No attendance records found for today.");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Failed to generate Excel file.");
+    } finally {
+      setIsExporting(false);
     }
-    fetchData();
-  }, []);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-12">
-      <header className="mb-12 text-center">
-        <h1 className="text-5xl font-black text-primary tracking-tighter uppercase">Control Center</h1>
-        <div className="flex justify-center gap-4 mt-8">
-          {/* NAVIGATION BUTTONS */}
-          <button 
-            onClick={() => setView("instructors")}
-            className={`px-8 py-4 rounded-2xl font-black transition-all ${
-              view === "instructors" ? "bg-primary text-white shadow-xl scale-105" : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-            }`}
-          >
-            MANAGE TEACHERS
-          </button>
-          <button 
-            onClick={() => setView("pending")}
-            className={`px-8 py-4 rounded-2xl font-black transition-all flex items-center gap-3 ${
-              view === "pending" ? "bg-secondary text-white shadow-xl scale-105" : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-            }`}
-          >
-            PENDING STUDENTS
-            {pendingUsers.length > 0 && (
-              <span className="bg-red-500 text-white text-[10px] px-2 py-1 rounded-full animate-pulse">
-                {pendingUsers.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-12">
+          <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tight">
+            Admin Control Panel
+          </h1>
+          <p className="text-gray-500 font-medium">Oxford Group of Colleges | Portal Management</p>
+        </header>
 
-      <div className="max-w-4xl mx-auto">
-        {/* VIEW 1: TEACHER CREATION */}
-        {view === "instructors" && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-black text-gray-800 uppercase">Register New Faculty</h2>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Staff</p>
-                  <p className="text-3xl font-black text-secondary">{instructorCount}</p>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          {/* Navigation Card: Students */}
+          <Link href="/admin/students" className="group">
+            <div className="h-full p-8 bg-white rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:border-primary transition-all duration-300">
+              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
               </div>
-              
-              <form action={createInstructor} className="space-y-4">
-                <input name="name" placeholder="Instructor Name" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-primary font-bold" required />
-                <input name="email" type="email" placeholder="Official Email" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-primary font-bold" required />
-                <input name="password" placeholder="Assign Login Password" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-primary font-mono" required />
-                <button className="w-full py-5 bg-primary text-white font-black rounded-2xl mt-6 shadow-lg shadow-blue-200 hover:bg-black transition-all uppercase tracking-widest">
-                  Create Instructor Account
-                </button>
-              </form>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Student Approvals</h2>
+              <p className="text-gray-500">Review and approve pending student registrations for the new session.</p>
             </div>
-          </div>
-        )}
+          </Link>
 
-        {/* VIEW 2: PENDING APPROVALS */}
-        {view === "pending" && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
-            <h2 className="text-2xl font-black text-gray-800 uppercase mb-6">Approval Queue</h2>
-            {pendingUsers.length === 0 ? (
-              <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-200">
-                <p className="text-gray-400 font-bold">Boom! All caught up. No pending requests.</p>
+          {/* Navigation Card: Instructors */}
+          <Link href="/admin/instructor" className="group">
+            <div className="h-full p-8 bg-white rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:border-primary transition-all duration-300">
+              <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
-            ) : (
-              pendingUsers.map((user) => (
-                <div key={user._id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition-all">
-                  <div className="text-center md:text-left">
-                    <p className="font-black text-gray-900 text-lg uppercase">{user.name}</p>
-                    <p className="text-sm text-gray-400 font-medium">{user.email}</p>
-                  </div>
-                  <form action={async () => {
-                    await approveUser(user._id);
-                    // Update local state to remove the approved user immediately
-                    setPendingUsers(pendingUsers.filter(u => u._id !== user._id));
-                  }}>
-                    <button className="bg-secondary text-white px-10 py-4 rounded-2xl font-black text-sm hover:scale-105 transition-all shadow-lg shadow-purple-100">
-                      APPROVE ACCESS
-                    </button>
-                  </form>
-                </div>
-              ))
-            )}
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Manage Instructors</h2>
+              <p className="text-gray-500">Create new instructor accounts and assign them to 9th, 10th, or DIT classes.</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Attendance Export Section */}
+        <div className="bg-gray-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <h3 className="text-3xl font-black mb-4 uppercase">Daily Reports</h3>
+            <p className="text-gray-400 mb-8 max-w-md">
+              Generate a comprehensive Excel report of all student attendance submitted by instructors today.
+            </p>
+            <button
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold uppercase tracking-wider transition-all ${
+                isExporting 
+                ? "bg-gray-700 cursor-not-allowed" 
+                : "bg-white text-gray-900 hover:bg-primary hover:text-white"
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="FileTextIcon" />
+              </svg>
+              {isExporting ? "Generating..." : "Download Today's Excel"}
+            </button>
           </div>
-        )}
+          {/* Decorative background shape */}
+          <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-primary opacity-10 rounded-full blur-3xl"></div>
+        </div>
       </div>
     </div>
   );

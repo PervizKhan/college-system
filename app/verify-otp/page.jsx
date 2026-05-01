@@ -22,7 +22,7 @@ export default function VerifyOTP() {
     });
 
     if (res.ok) {
-      router.push("/login?message=Email verified! Now wait for Admin approval.");
+      router.push("/register?status=approved_pending");
     } else {
       const data = await res.json();
       setError(data.error || "Invalid OTP");
