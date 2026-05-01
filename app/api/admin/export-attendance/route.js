@@ -29,7 +29,7 @@ export async function GET() {
         excelData.push({
           Date: record.date.toLocaleDateString(),
           Class: record.className,
-          Student_Name: s.name,
+          "Student Name": s.name || "N/A",
           Status: s.status,
         });
       });

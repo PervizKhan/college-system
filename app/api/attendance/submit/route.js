@@ -10,34 +10,39 @@ export async function POST(req) {
     await dbConnect();
     const { students } = await req.json();
 
-    // 1. Get Session & Instructor
     const cookieStore = await cookies();
     const token = cookieStore.get("session")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const decoded = await decrypt(token);
-    // Clean the ID to prevent CastError
-    const cleanId = JSON.parse(JSON.stringify(decoded.id));
     
+    // Convert ID to a clean string to avoid Mongoose CastErrors
+    const cleanId = JSON.parse(JSON.stringify(decoded.id));
     const instructor = await User.findById(cleanId);
-    if (!instructor) return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
 
-    // 2. Create the Record
-    // We lock the className to the instructor's assignedClass
-    await Attendance.create({
+    // DEBUG: Check if instructor or their class is missing
+    if (!instructor) {
+      return NextResponse.json({ error: "Instructor account not found in database." }, { status: 404 });
+    }
+
+    if (!instructor.assignedClass) {
+      return NextResponse.json({ 
+        error: `Instructor ${instructor.name} does not have an 'assignedClass' (e.g., 9th, 10th) set in their profile.` 
+      }, { status: 400 });
+    }
+
+    const newRecord = await Attendance.create({
       date: new Date(),
       instructorId: instructor._id,
-      className: instructor.assignedClass, 
+      className: instructor.assignedClass, // This is the field failing validation
       students: students.map(s => ({
-        studentId: s._id,
+        studentId: s.studentId,
         name: s.name,
         status: s.status
       }))
     });
 
-    return NextResponse.json({ success: true, message: "Attendance submitted successfully!" });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Submission Error:", error);
-    return NextResponse.json({ error: "Failed to save attendance" }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
