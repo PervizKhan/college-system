@@ -9,10 +9,10 @@ export default function HomePage() {
             ❤️ Affiliated with FPAHS
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-2">
-            FATA MEDICAL
+            FATA INSTITUTE OF ALLIED HEALTH SCIENCES
           </h1>
           <h2 className="text-3xl md:text-5xl font-bold text-teal-300 mb-4">
-            INSTITUTE
+            TSD DARA KOHAT
           </h2>
           <p className="text-lg md:text-xl opacity-90 mb-2">
             Faculty of Paramedical and Allied Health Sciences
